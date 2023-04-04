@@ -1,4 +1,4 @@
-APP_PATH = "/home/acac/otawa/otawa-xdd/cmake-build-debug/xengine/pipe_analyses_test"
+OTAWA_APP_PATH = "/home/acac/otawa/otawa-xdd/cmake-build-debug/xengine/pipe_analyses_test"
 TACLE_PATH = "/home/acac/tacle-bench"
 OTAWA_PROPS = [
     "otawa::xengine::XSTEPS_OUTPUT_PATH=./xstep.out", 
