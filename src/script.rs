@@ -20,10 +20,7 @@ pub mod script {
     impl Script {
         /// loaders should be registered in the order of options when run the full command
         /// each config option should be loaded by only one loader, return error if not
-        pub fn register_loader(
-            &mut self,
-            loader: Box<dyn CmdTermLoaderTrait>,
-        ) -> Result<(), String> {
+        pub fn register_loader(&mut self, loader: Box<dyn CmdTermLoaderTrait>) -> Result<(), String> {
             let loading_opts = loader.loading_opts();
             for opt_name in loading_opts {
                 if self.script_config.contains_key(&opt_name) {
@@ -93,7 +90,7 @@ pub mod script {
         }
     }
 
-    trait CmdTermLoaderTrait {
+    pub trait CmdTermLoaderTrait {
         /// return the options that this loader will load
         fn loading_opts(&self) -> Vec<String>;
 
@@ -278,7 +275,7 @@ pub mod script {
         fn build_all_command_to_run(&self) -> Vec<(String, Vec<String>)> {
             let mut res: Vec<(String, Vec<String>)> = Vec::new();
             let app_name = &self.argv_terms[0][0][0];
-            let empty_cmd = (app_name.clone(),Vec::new()); 
+            let empty_cmd = (app_name.clone(), Vec::new());
             res.push(empty_cmd);
 
             for argvs in &self.argv_terms[1..] {
