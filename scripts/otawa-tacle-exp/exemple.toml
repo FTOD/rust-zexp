@@ -1,5 +1,4 @@
 OTAWA_APP_PATH = "/home/acac/otawa/otawa-xdd/cmake-build-debug/xengine/pipe_analyses_test"
-TACLE_PATH = "/home/acac/tacle-bench"
 OTAWA_PROPS = [
     "otawa::xengine::XSTEPS_OUTPUT_PATH=./xstep.out", 
     "otawa::xengine::XENGINE_CONFIG_OUTPUT_PATH=./xengine.out", 
@@ -8,3 +7,5 @@ OTAWA_PROPS = [
     "otawa::hard::PROCESSOR_ID=otawa::omach::Complex"
     ]
 OTAWA_LOG_LEVEL = "deps"
+TACLE_BENCHSET_TO_RUN = ["kernel"]
+TACLE_SCRIPT_PATH = "/home/acac/rust-zexp/scripts/otawa-tacle-exp/tacle.toml"

@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::{exit, Command};
 
 mod script;
+mod tacle;
 use crate::script::script::Script;
 
 /// Run experince with ZExp!
