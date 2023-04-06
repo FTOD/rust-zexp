@@ -2,3 +2,5 @@
 *.dot
 *.xdot
 *.out
+*.elf
+*.out

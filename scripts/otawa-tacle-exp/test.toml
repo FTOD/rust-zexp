@@ -1,0 +1,5 @@
+CMD = "$exec $opt1 $opt2 --s $opt3"
+exec = "/home/acac"
+opt1 = ["otawa-xdd", "otawa-bdd"]
+opt2 = "pipe_analyses_test"
+opt3 = "kernel"
