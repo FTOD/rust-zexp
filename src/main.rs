@@ -1,13 +1,11 @@
 use clap::Parser;
-use log::{debug, error, info, trace, warn};
-use rayon::prelude::*;
+use log::{error, info};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use std::fs;
 use std::path::Path;
 use std::process::{exit, Command, Output};
 use std::sync::{Arc, Mutex};
 
-mod runner;
 mod script;
 mod tacle;
 
@@ -26,46 +24,42 @@ struct Args {
     j: usize,
 }
 
-fn run_tasks_concurrently(tasks: Vec<(String, Vec<String>)>, num_cores: usize) {
+fn run_tasks_concurrently(tasks: &Vec<Task>, num_cores: usize) {
     // Create a thread pool with the specified number of cores
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_cores)
         .build()
         .unwrap();
 
-    let tasks = Arc::new(Mutex::new(tasks));
-    let mut handles = Vec::new();
-
+    let tasks = Arc::new(Mutex::new(tasks.clone()));
     for _ in 0..num_cores {
         let tasks = Arc::clone(&tasks);
-        let handle = pool.install(move || {
-            while let Some((cmd, opts)) = {
+        pool.scope(|s| {
+            while let Some(task) = {
                 let mut tasks_guard = tasks.lock().unwrap();
                 tasks_guard.pop()
             } {
-                // TODO, currently the name is derived from the options, which works only for tacle
-                let name = Path::new(&opts[0]);
-                let name = name.file_name().unwrap().to_str().unwrap();
-                info!("Running task: {}", &name);
-                debug!("Command: {} {:?}", &cmd, &opts);
-                let output = Command::new(&cmd)
-                    .args(&opts)
-                    .output()
-                    .expect("Failed to execute command");
-                log_into_file(&name, &output);
-                info!("Task {} terminated", name);
+                s.spawn(move |_| {
+                    info!("Running task: {}", &task.name);
+                    let output = Command::new(&task.cmd)
+                        .args(&task.args)
+                        .output()
+                        .expect("Failed to execute command");
+                    log_into_file(&task.name, &output);
+                    info!("Task {} terminated", task.name);
+                })
             }
-        });
-        handles.push(handle);
+        })
     }
 }
 
 fn log_into_file(name: &str, output: &Output) {
+    let mut to_log = output.stderr.clone();
+    to_log.extend(&output.stdout);
     // open a file with name, write the output in it
-    let mut script_file = fs::write(name, &output.stdout).expect("cannot write to file");
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let mut out_filename = name.to_string();
+    out_filename.push_str(".out");
+    fs::write(out_filename, to_log).expect("cannot write to file");
 }
 
 fn main() {
@@ -97,5 +91,5 @@ fn main() {
 
     let mut script = otawa_tacle_script(&script_path);
     let cmd = script.gen_cmd().unwrap();
-    run_tasks_concurrently(cmd, num_cores)
+    run_tasks_concurrently(&cmd, num_cores);
 }

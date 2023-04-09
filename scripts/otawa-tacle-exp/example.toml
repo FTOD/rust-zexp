@@ -1,0 +1,30 @@
+# All reserved keywords are in uppercase
+# they are : CMD, PROVIDED_VARS and TASK_NAME
+# The main command pattern
+CMD = "$otawa_app $tacle_exec $tacle_entry_point $otawa_opts" 
+
+
+# Specify the sub-configurations
+# for exemple, TACLE manager configuration
+[TACLE]
+# TASK_NAME provide the name of the task that will be used/displayed when logging
+# It is not a variable in the command but a "hidden" variable in the command
+# Only one loader can provide TASK_NAME, panic otherwise
+PROVIDED_VARS = ["TASK_NAME", "$tacle_exec", "$tacle_entry_point"]
+
+# After specifying the PROVIDED_VARS, you can specify options
+# These will be deserialized into Rust objects, so carreful your filed names
+tacle_desc_path = "/home/acac/rust-zexp/scripts/otawa-tacle-exp/tacle.toml"
+tacle_run_benchset = ["kernel"]
+
+
+# Another example, OTAWA configuration
+[OTAWA]
+PROVIDED_VARS = ["$otawa_app", "$otawa_opts"]
+app_path = "/home/acac/otawa/otawa-xdd/cmake-build-debug/xengine/pipe_analyses_test"
+props = [
+    "otawa::CACHE_CONFIG_PATH=/home/acac/otawa/otawa-xdd/arch/complex_cache.xml",
+    "otawa::MEMORY_PATH=/home/acac/otawa/otawa-xdd/arch/complex_mem.xml",
+    "otawa::hard::PROCESSOR_ID=otawa::omach::Complex"
+    ]
+log_level = "deps"

@@ -1,14 +1,16 @@
-tacle_root_path = "/home/acac/tacle-bench/"
-[TACLE_BENCHSET_LIST.kernel]
-benchset_path = "bench/kernel/"
+root_path = "/home/acac/tacle-bench/"
+[[benchsets]]
+name = "kernel"
+path_from_root = "bench/kernel/"
 benchs = [
-            { name = "binarysearch", exec = "binary_search/binary_search.elf", entry_point = "binary_search_main"},
+            # name = name of bench, which will be generated as task name
+            # exec = path from the directory of benchset
+            { name = "binarysearch", exec = "binarysearch/binarysearch.elf", entry_point = "binarysearch_main"},
             { name = "complex_updates", exec = "complex_updates/complex_updates.elf", entry_point = "complex_updates_main"},
             { name = "deg2rad", exec = "deg2rad/deg2rad.elf", entry_point = "deg2rad_main"},
             { name = "fir2dim", exec = "fir2dim/fir2dim.elf", entry_point = "fir2dim_main"},
             { name = "jfdctint", exec = "jfdctint/jfdctint.elf", entry_point = "jfdctint_main"},
             { name = "md5", exec = "md5/md5.elf", entry_point = "md5_main"},
-            { name = "quicksort", exec = "quicksort/quicksort.elf", entry_point = "quicksort_main"},
             { name = "quicksort", exec = "quicksort/quicksort.elf", entry_point = "quicksort_main"},
             { name = "st", exec = "st/st.elf", entry_point = "st_main"},
             { name = "bitcount", exec = "bitcount/bitcount.elf", entry_point = "bitcount_main"},

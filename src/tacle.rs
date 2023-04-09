@@ -1,122 +1,82 @@
-use log::{debug, error, info, trace, warn};
-use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+use serde::Deserialize;
 use std::fs::File;
 use std::io::prelude::*;
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 use toml::Table;
 
+#[derive(Debug, Deserialize, Clone)]
 pub struct Bench {
-    name: String,
-    path: PathBuf,
-    entry_point: String,
+    pub name: String,
+    pub exec: String,
+    pub entry_point: String,
 }
 
+#[derive(Deserialize)]
 pub struct BenchSet {
     name: String,
-    path: PathBuf,
+    path_from_root: PathBuf,
     benchs: Vec<Bench>,
 }
 
+#[derive(Deserialize)]
 pub struct TACLe {
-    root_path: PathBuf,
+    root_path: String,
     benchsets: Vec<BenchSet>,
 }
 
 impl TACLe {
     pub fn from_script(script_path: &str) -> TACLe {
-        let mut script_file =
-            File::open(script_path).expect(&format!("tacle script file not found"));
-        let mut script = String::new();
-        script_file.read_to_string(&mut script).expect(&format!(
-            "something went wrong reading the tacle script file {}",
-            script_path
-        ));
+        let mut file = File::open(script_path)
+            .expect(format!("failed to open script file {}", script_path).as_str());
 
-        let script_config = script
+        let mut script_content = String::new();
+        file.read_to_string(&mut script_content)
+            .expect("Error when reading script file");
+
+        let script_content = script_content
             .parse::<Table>()
-            .expect("script file opened but error parsing it");
+            .expect("Error when parsing the script file, check you TOML syntax!");
 
-        let tacle_root_path = PathBuf::from(
-            script_config["tacle_root_path"]
-                .as_str()
-                .expect("tacle_root_path must be a string"),
-        );
+        let mut res: TACLe = script_content.try_into().unwrap();
+        res.patch_full_exec_name();
+        res
+    }
 
-        let benchset_list = Table::try_from(&script_config["TACLE_BENCHSET_LIST"])
-            .expect("cannot convert TACLEBENCHSET_List to table, check your script file");
-
-        let mut tacle = Vec::new();
-        for (key, value) in &benchset_list {
-            let benchs_in_script = value.as_table().expect("each bench set must be a table")
-                ["benchs"]
-                .as_array()
-                .expect("benchs must be an array of benchs");
-            let mut benchs = Vec::new();
-            for bench in benchs_in_script {
-                let bench = bench.as_table().expect("bench name must be a table");
-                let new_bench = Bench {
-                    name: bench["name"]
-                        .as_str()
-                        .expect("bench name must be a string")
-                        .to_string(),
-                    path: PathBuf::from(
-                        bench["exec"]
-                            .as_str()
-                            .expect("benchset_path must be a string"),
-                    ),
-                    entry_point: bench["entry_point"]
-                        .as_str()
-                        .expect("bench entry_point must be a string")
-                        .to_string(),
-                };
-                benchs.push(new_bench);
+    /// the exec of each bench is only the path from the benchset root, so patch it to have absolute path
+    fn patch_full_exec_name(&mut self) {
+        for benchset in self.benchsets.iter_mut() {
+            for bench in benchset.benchs.iter_mut() {
+                let full_exec_name = PathBuf::from(&self.root_path)
+                    .join(&benchset.path_from_root)
+                    .join(&bench.exec);
+                bench.exec = full_exec_name.to_str().unwrap().to_string();
             }
-            let mut new_benchset = BenchSet {
-                name: key.clone(),
-                path: PathBuf::from(
-                    value.as_table().expect("each bench set must be a table")["benchset_path"]
-                        .as_str()
-                        .expect("benchset_path must be a string"),
-                ),
-                benchs,
-            };
-            tacle.push(new_benchset);
-        }
-
-        TACLe {
-            root_path: tacle_root_path,
-            benchsets: tacle,
         }
     }
 
-    /// generate pairs of executable and entry point for the given benche set
-    pub fn gen_exec_entry_pair(&self, benchset_name: &str) -> Vec<(String, String)> {
-        let mut res = Vec::new();
-        for benchset in &self.benchsets {
-            if benchset.name == benchset_name {
-                for bench in &benchset.benchs {
-                    let full_exec_path = self.root_path.join(&benchset.path).join(&bench.path);
-                    res.push((
-                        full_exec_path
-                            .to_str()
-                            .expect("failed to convert path to string?")
-                            .to_string(),
-                        bench.entry_point.clone(),
-                    ));
-                }
-            }
-            return res;
-        }
-        return Vec::new();
+    /// return a vector of benchs with respect to the benchset name given
+    pub fn select_bench(&self, benchset_name: &Vec<String>) -> Vec<Bench> {
+        let benchsets: Vec<&BenchSet> = self
+            .benchsets
+            .iter()
+            .filter(|x| benchset_name.contains(&x.name))
+            .collect();
+        let res: Vec<Bench> = benchsets.clone().iter().fold(Vec::new(), |mut acc, x| {
+            acc.extend(x.benchs.clone());
+            acc
+        });
+        res
     }
 }
+
 #[cfg(test)]
-#[test]
-fn test_tacle() {
-    let script_path = "/home/acac/rust-zexp/scripts/otawa-tacle-exp/tacle.toml";
-    let tacle = TACLe::from_script(script_path);
-    debug!("{:?}", tacle.gen_exec_entry_pair("kernel"));
+mod test {
+    use super::*;
+    use log::debug;
+    #[test]
+    fn test_tacle() {
+        let script_path = "/home/acac/rust-zexp/scripts/otawa-tacle-exp/tacle.toml";
+        let tacle = TACLe::from_script(script_path);
+        debug!("{:?}", tacle.select_bench(&vec!["kernel".to_string()]));
+    }
 }
