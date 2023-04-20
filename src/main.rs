@@ -5,6 +5,8 @@ use std::fs;
 use std::path::Path;
 use std::process::{exit, Command, Output};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use wait_timeout::ChildExt;
 
 mod script;
 mod tacle;
@@ -41,25 +43,34 @@ fn run_tasks_concurrently(tasks: &Vec<Task>, num_cores: usize) {
             } {
                 s.spawn(move |_| {
                     info!("Running task: {}", &task.name);
-                    let output = Command::new(&task.cmd)
+                    let mut fout = task.name.clone();
+                    fout.push_str(".out");
+                    let fout = fs::File::create(fout).unwrap();
+                    let mut child = Command::new(&task.cmd)
                         .args(&task.args)
-                        .output()
+                        .stderr(fout.try_clone().unwrap())
+                        .stdout(fout)
+                        .spawn()
                         .expect("Failed to execute command");
-                    log_into_file(&task.name, &output);
                     info!("Task {} terminated", task.name);
+
+                    // timeout for 2 hours
+                    let two_hours = Duration::from_secs(3600);
+                    match child.wait_timeout(two_hours).unwrap() {
+                        Some(status) => {
+                            return;
+                        }
+                        None => {
+                            info!("Task {} timed out, killed", task.name);
+                            // timeout, kill it
+                            child.kill().unwrap();
+                            child.wait().unwrap().code()
+                        }
+                    };
                 })
             }
         })
     }
-}
-
-fn log_into_file(name: &str, output: &Output) {
-    let mut to_log = output.stderr.clone();
-    to_log.extend(&output.stdout);
-    // open a file with name, write the output in it
-    let mut out_filename = name.to_string();
-    out_filename.push_str(".out");
-    fs::write(out_filename, to_log).expect("cannot write to file");
 }
 
 fn main() {

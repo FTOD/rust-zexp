@@ -13,3 +13,4 @@ regex = "1.7.3"
 serde = { version = "1.0.159", features = ["derive"] }
 simplelog = "0.12.1"
 toml = "0.7.3"
+wait-timeout = "0.2.0"
